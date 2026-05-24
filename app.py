@@ -9,6 +9,7 @@ from db import init_db, create_session, get_latest_session, session_exists, \
 
 app = Flask(__name__)
 PORT = int(os.environ.get('PORT', 8080))
+init_db()
 
 def get_local_ip():
     try:
