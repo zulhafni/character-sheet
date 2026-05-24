@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trainer Dashboard // RhetoriQo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1D3557; --cream: #F1FAEE; --coral: #E63946;
+      --teal: #A8DADC; --blue: #457B9D;
+    }
+    html, body {
+      height: 100%;
+      background: var(--navy);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      line-height: 1.8;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+      pointer-events: none;
+      z-index: 999;
+    }
+    .wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 32px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 3px solid var(--blue);
+      margin-bottom: 32px;
+    }
+    .logo { font-size: 9px; color: var(--teal); letter-spacing: 1px; }
+    .trainer-tag { font-size: 8px; color: var(--coral); }
+
+    h1 { font-size: 18px; color: var(--coral); text-shadow: 4px 4px 0 #8b0000; line-height: 1.6; margin-bottom: 10px; }
+    .subtitle { font-size: 10px; color: var(--teal); margin-bottom: 36px; line-height: 2; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 540px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* QR block */
+    .qr-block {
+      background: #0d1f30;
+      border: 3px solid var(--teal);
+      box-shadow: 5px 5px 0 #2a6f72;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .qr-block img {
+      width: 100%;
+      max-width: 200px;
+      image-rendering: pixelated;
+      border: 4px solid var(--cream);
+    }
+    .qr-label { font-size: 8px; color: var(--teal); text-align: center; }
+    .join-url {
+      font-size: 8px;
+      color: var(--blue);
+      word-break: break-all;
+      text-align: center;
+      line-height: 2;
+    }
+
+    /* Info block */
+    .info-block { display: flex; flex-direction: column; gap: 16px; }
+
+    .stat-box {
+      background: #0d1f30;
+      border: 3px solid var(--blue);
+      box-shadow: 4px 4px 0 #0a1520;
+      padding: 18px;
+    }
+    .stat-label { font-size: 8px; color: var(--teal); margin-bottom: 10px; }
+    .stat-value { font-size: 36px; color: var(--cream); text-shadow: 3px 3px 0 var(--blue); line-height: 1.2; }
+    .stat-sublabel { font-size: 9px; color: var(--blue); margin-top: 8px; text-shadow: none; }
+
+    .code-box {
+      background: #0d1f30;
+      border: 3px solid var(--coral);
+      box-shadow: 4px 4px 0 #8b0000;
+      padding: 18px;
+    }
+    .code-label { font-size: 8px; color: var(--coral); margin-bottom: 10px; }
+    .code-value { font-size: 28px; color: var(--cream); text-shadow: 3px 3px 0 #8b0000; letter-spacing: 4px; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: auto; }
+    .px-btn {
+      flex: 1;
+      min-width: 140px;
+      background: var(--coral);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 18px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 4px 4px 0 #8b0000;
+      transition: transform 0.08s, box-shadow 0.08s;
+      text-decoration: none;
+      display: block;
+    }
+    .px-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 #8b0000; }
+    .px-btn.teal { background: var(--teal); color: var(--navy); box-shadow: 4px 4px 0 #2a6f72; }
+    .px-btn.teal:active { box-shadow: 2px 2px 0 #2a6f72; }
+    .px-btn.ghost { background: transparent; color: var(--blue); border: 2px solid var(--blue); box-shadow: none; font-size: 9px; padding: 14px; }
+
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: var(--teal);
+      box-shadow: 2px 2px 0 #2a6f72;
+      animation: pulse 1.2s ease-in-out infinite;
+      margin-right: 8px;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <span class="logo">RHETORIQO</span>
+    <span class="trainer-tag">TRAINER VIEW</span>
+  </div>
+
+  <h1>SESSION<br>ACTIVE</h1>
+  <p class="subtitle"><span class="status-dot"></span>Learners can now join via QR or link.</p>
+
+  <div class="main-grid">
+    <!-- QR CODE -->
+    <div class="qr-block">
+      <span class="qr-label">▶ SCAN TO JOIN</span>
+      <img src="/qr/{{ code }}" alt="QR Code" />
+      <span class="join-url">{{ join_url }}</span>
+    </div>
+
+    <!-- SESSION INFO -->
+    <div class="info-block">
+      <div class="code-box">
+        <div class="code-label">▶ SESSION CODE</div>
+        <div class="code-value">{{ code }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">▶ SPEAKERS JOINED</div>
+        <div class="stat-value" id="speaker-count">{{ count }}</div>
+        <div class="stat-sublabel" id="speaker-sublabel">{{ 'speaker' if count == 1 else 'speakers' }} joined</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <a class="px-btn teal" href="/stage/{{ code }}">▶ VIEW STAGE</a>
+    <a class="px-btn ghost" href="/new-session" onclick="return confirm('Start a fresh session? Current data will remain saved.')">NEW SESSION</a>
+  </div>
+</div>
+
+<script>
+  const CODE = '{{ code }}';
+
+  function pollCount() {
+    fetch('/api/session/' + CODE)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('speaker-count').textContent = data.count;
+        document.getElementById('speaker-sublabel').textContent =
+          (data.count === 1 ? 'speaker' : 'speakers') + ' joined';
+      })
+      .catch(() => {});
+  }
+
+  setInterval(pollCount, 3000);
+</script>
+</body>
+</html>

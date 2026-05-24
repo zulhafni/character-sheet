@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sprite Permutations // RhetoriQo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --navy:#1D3557;--cream:#F1FAEE;--coral:#E63946;--teal:#A8DADC;--blue:#457B9D;--dark:#0d1f30; }
+    body { background:var(--navy); color:var(--cream); font-family:'Press Start 2P',monospace; font-size:10px; line-height:1.8; padding:32px 24px 48px; }
+    body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px); pointer-events:none; z-index:999; }
+    h1 { font-size:14px; color:var(--coral); text-shadow:3px 3px 0 #8b0000; margin-bottom:6px; }
+    .subtitle { font-size:7px; color:var(--teal); margin-bottom:32px; line-height:2; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:20px; }
+    .card { background:var(--dark); border:3px solid var(--blue); box-shadow:4px 4px 0 #0a1520; padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; }
+    .card-num { font-size:7px; color:var(--blue); align-self:flex-start; }
+    .card-title { font-size:9px; color:var(--coral); text-align:center; }
+    canvas { image-rendering:pixelated; image-rendering:crisp-edges; background:#162844; }
+    .equip-row { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; }
+    .equip-chip { font-size:6px; padding:3px 6px; border:1px solid var(--teal); color:var(--teal); }
+    .equip-chip.none { border-color:#2a4a6a; color:#2a4a6a; }
+    .expr-lbl { font-size:6px; color:var(--coral); }
+    .trait-list { width:100%; border-top:1px solid #1e3a55; padding-top:10px; }
+    .trait-lbl { font-size:6px; color:var(--blue); margin-bottom:6px; }
+    .trait-chips { display:flex; flex-wrap:wrap; gap:4px; }
+    .trait-chip { font-size:6px; padding:3px 5px; background:#1a3a55; color:var(--cream); }
+  </style>
+</head>
+<body>
+<h1>SPRITE PERMUTATIONS</h1>
+<p class="subtitle">
+  BOOTS=grounded · WEAPON=powerful · AMULET=human · OFF-HAND=sharp · HAT=professional<br>
+  Face: row 3=brows · row 4=eyes · row 5=separator · row 6=mouth
+</p>
+<div class="grid" id="grid"></div>
+<script>
+const PALETTE = {
+  '.':null,'W':'#F1FAEE','S':'#F5C6A0','T':'#A8DADC','C':'#E63946',
+  'B':'#457B9D','N':'#1D3557','G':'#9E9E9E','L':'#CFD8DC','O':'#FFB300',
+  'H':'#5D4037','K':'#222222',
+};
+
+const BASE_CHARACTER = [
+  '...WWWWWW...','..WWWWWWWW..','...SSSSSS...','...SSSSSS...',
+  '...SKSSKS...','...SSSSSS...','...SSSSSS...','...BBBBBB...',
+  '..BBBBBBBB..','.BBBBBBBBBB.','.BBBBBBBBBB.','..BBBBBBBB..',
+  '...GGGGGG...','...GGGGGG...','...GG..GG...','...GG..GG...',
+];
+
+const EXPRESSIONS = {
+  grounded:    ['............','............','............','............','............','............','....K..K....','............','............','............','............','............','............','............','............','............'],
+  powerful:    ['............','............','............','...KK..KK...','............','............','....KKKK....','............','............','............','............','............','............','............','............','............'],
+  human:       ['............','............','............','............','...KK..KK...','............','...KKKKKK...','............','............','............','............','............','............','............','............','............'],
+  sharp:       ['............','............','............','....K.......','............','............','.....KK.....','............','............','............','............','............','............','............','............','............'],
+  professional:['............','............','............','....K..K....','............','............','....KK......','............','............','............','............','............','............','............','............','............'],
+};
+
+const EQUIPMENT = {
+  grounded:[
+    ['............','............','............','............','............','............','............','............','............','............','............','............','...HHHHHH...','...HHHHHH...','..HHH..HHH..','..HHH..HHH..'],
+    ['............','............','............','............','............','............','............','............','............','............','............','............','...THHHHT...','...HHHHHH...','..THH..HHT..','..HHH..HHH..'],
+    ['............','............','............','............','............','............','............','............','............','............','............','............','..OHHHHHHO..','...HHHHHH...','..OHH..HHO..','..HHH..HHH..'],
+  ],
+  powerful:[
+    ['............','............','............','............','............','............','............','............','............','.........LLL','.........LLL','.........OOO','.........GGG','............','............','............'],
+    ['............','............','............','............','............','...........L','..........LL','.........LLL','.........LLL','........GGGG','.........OOO','.........OOO','.........GGG','............','............','............'],
+    ['............','...........C','..........LC','..........LL','..........LL','..........LL','..........LL','.........LLL','.........LLL','........CCGG','.........OOO','.........OOO','.........CCC','............','............','............'],
+  ],
+  human:[
+    ['............','............','............','............','............','............','............','............','...CC..CC...','...CCCCCC...','....CCCC....','....CCC.....', '.....C......','............','............','............'],
+    ['............','............','............','............','............','............','............','....TTTT....','...TWWWT....','...TWWWT....','...TWWWT....','....TTTT....','............','............','............','............'],
+    ['............','............','............','............','............','............','............','............','.....WW.....','...CCWWCC...','..CCWWWWCC..','...CCWWCC...','.....CC.....','............','............','............'],
+  ],
+  sharp:[
+    ['............','............','............','............','CT..........','TTT.........','TTT.........', '.TT.........','..T.........','..T.........','..T.........','............','............','............','............','............'],
+    ['............','............','............','............','............','............','OOO.........','WWW.........','WWW.........','WWW.........','OOO.........','............','............','............','............','............'],
+    ['............','............','............','............','............','.TT.........','TTT.........','TWW.........','TWW.........','TTT.........','.GG.........','GGG.........','............','............','............','............'],
+  ],
+  professional:[
+    ['..CCCCCCCC..','...CCCCCC...','............','............','............','............','............','............','............','............','............','............','............','............','............','............'],
+    ['..GGGGGGGG..','...LLLLLL...','............','............','............','............','............','............','............','............','............','............','............','............','............','............'],
+    ['..OCOCOCOC..','..OOOOOOOO..','............','............','............','............','............','............','............','............','............','............','............','............','............','............'],
+  ],
+};
+
+const TRAIT_CLUSTERS = {
+  'Calm':'grounded','Grounded':'grounded','Steady':'grounded','Measured':'grounded','Composed':'grounded','Unhurried':'grounded','Still':'grounded','Centred':'grounded','Resilient':'grounded','Assured':'grounded',
+  'Bold':'powerful','Commanding':'powerful','Powerful':'powerful','Direct':'powerful','Assertive':'powerful','Striking':'powerful','Unapologetic':'powerful','Decisive':'powerful','Confident':'powerful','Dynamic':'powerful','Challenging':'powerful','Magnetic':'powerful',
+  'Warm':'human','Approachable':'human','Inviting':'human','Playful':'human','Generous':'human','Energising':'human','Joyful':'human','Light':'human','Inclusive':'human','Collaborative':'human','Diplomatic':'human','Connecting':'human','Vulnerable':'human','Authentic':'human','Empowering':'human','Spontaneous':'human',
+  'Clear':'sharp','Precise':'sharp','Purposeful':'sharp','Focused':'sharp','Thoughtful':'sharp','Curious':'sharp','Inspiring':'sharp','Expressive':'sharp','Concise':'sharp','Strategic':'sharp',
+  'Authoritative':'professional','Persuasive':'professional','Credible':'professional','Influential':'professional','Polished':'professional','Engaging':'professional','Adaptable':'professional','Facilitative':'professional','Trustworthy':'professional','Honest':'professional',
+};
+
+function renderSprite(canvas, traits, px) {
+  const rows = BASE_CHARACTER;
+  canvas.width  = rows[0].length * px;
+  canvas.height = rows.length * px;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  function drawGrid(grid) {
+    grid.forEach((row, y) => {
+      [...row].forEach((ch, x) => {
+        const color = PALETTE[ch];
+        if (!color) return;
+        ctx.fillStyle = color;
+        ctx.fillRect(x * px, y * px, px, px);
+      });
+    });
+  }
+  const counts = { grounded:0, powerful:0, human:0, sharp:0, professional:0 };
+  (traits || []).forEach(t => { const c = TRAIT_CLUSTERS[t]; if (c) counts[c]++; });
+  drawGrid(rows);
+  ['grounded','powerful','human','sharp','professional'].forEach(cl => {
+    const n = counts[cl]; if (!n) return;
+    drawGrid(EQUIPMENT[cl][n >= 3 ? 2 : n - 1]);
+  });
+  const maxCount = Math.max(...Object.values(counts));
+  if (maxCount > 0) {
+    const dominants = Object.keys(counts).filter(k => counts[k] === maxCount);
+    if (dominants.length === 1) drawGrid(EXPRESSIONS[dominants[0]]);
+  }
+  return counts;
+}
+
+const SLOT_LABELS   = { grounded:'BOOTS', powerful:'WEAPON', human:'AMULET', sharp:'OFF-HAND', professional:'HAT' };
+const TIER_NAMES    = ['basic','upgraded','elite'];
+const EXPR_LABELS   = { grounded:'serene smile', powerful:'determined', human:'happy', sharp:'focused', professional:'smirk' };
+
+const PERMUTATIONS = [
+  { title:'GROUNDED ONLY',           traits:['Calm','Grounded','Still'] },
+  { title:'POWERFUL ONLY',           traits:['Bold','Commanding','Powerful'] },
+  { title:'HUMAN ONLY',              traits:['Warm','Approachable','Vulnerable'] },
+  { title:'SHARP ONLY',              traits:['Clear','Precise','Focused'] },
+  { title:'PROFESSIONAL ONLY',       traits:['Credible','Influential','Polished'] },
+  { title:'ONE OF EACH (tier 0)',    traits:['Steady','Bold','Warm','Clear','Credible'] },
+  { title:'GROUNDED + POWERFUL',     traits:['Steady','Assured','Bold','Commanding'] },
+  { title:'HUMAN + SHARP',           traits:['Warm','Playful','Energising','Clear','Curious'] },
+  { title:'POWERFUL + PROFESSIONAL', traits:['Commanding','Assertive','Credible','Influential','Polished'] },
+  { title:'FULL SPEAKER',            traits:['Composed','Bold','Warm','Precise','Credible','Vulnerable'] },
+];
+
+const grid = document.getElementById('grid');
+PERMUTATIONS.forEach((perm, i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const num = document.createElement('div');
+  num.className = 'card-num';
+  num.textContent = `${String(i+1).padStart(2,'0')} / 10`;
+  const title = document.createElement('div');
+  title.className = 'card-title';
+  title.textContent = perm.title;
+  const canvas = document.createElement('canvas');
+  const counts = renderSprite(canvas, perm.traits, 10);
+  const equipRow = document.createElement('div');
+  equipRow.className = 'equip-row';
+  ['grounded','powerful','human','sharp','professional'].forEach(cl => {
+    const n = counts[cl];
+    const chip = document.createElement('div');
+    chip.className = 'equip-chip' + (n === 0 ? ' none' : '');
+    const tier = n >= 3 ? 2 : n > 0 ? n-1 : -1;
+    chip.textContent = n > 0 ? `${SLOT_LABELS[cl]} (${TIER_NAMES[tier]})` : SLOT_LABELS[cl];
+    equipRow.appendChild(chip);
+  });
+  const maxCount = Math.max(...Object.values(counts));
+  const dominants = Object.keys(counts).filter(k => counts[k] === maxCount && counts[k] > 0);
+  const exprDiv = document.createElement('div');
+  exprDiv.className = 'expr-lbl';
+  exprDiv.textContent = dominants.length === 1 ? `▶ ${EXPR_LABELS[dominants[0]].toUpperCase()}` : '▶ NEUTRAL';
+  const traitList = document.createElement('div');
+  traitList.className = 'trait-list';
+  const lbl = document.createElement('div');
+  lbl.className = 'trait-lbl';
+  lbl.textContent = '▶ TRAITS';
+  const chips = document.createElement('div');
+  chips.className = 'trait-chips';
+  perm.traits.forEach(t => {
+    const ch = document.createElement('div');
+    ch.className = 'trait-chip';
+    ch.textContent = t;
+    chips.appendChild(ch);
+  });
+  traitList.appendChild(lbl);
+  traitList.appendChild(chips);
+  card.appendChild(num);
+  card.appendChild(title);
+  card.appendChild(canvas);
+  card.appendChild(equipRow);
+  card.appendChild(exprDiv);
+  card.appendChild(traitList);
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Character Sheet // RhetoriQo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="/static/sprites.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1D3557; --cream: #F1FAEE; --coral: #E63946;
+      --teal: #A8DADC; --blue: #457B9D;
+    }
+    html, body {
+      height: 100%;
+      background: var(--navy);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      line-height: 1.8;
+      overflow-x: hidden;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      min-height: 100dvh;
+      padding: 22px 20px 32px;
+      max-width: 480px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease;
+    }
+    .screen.active { display: flex; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid var(--blue);
+    }
+    .logo { font-size: 8px; color: var(--teal); letter-spacing: 1px; }
+    .step-label { font-size: 8px; color: var(--coral); }
+
+    .progress-bar-wrap { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+    .progress-pip { width: 14px; height: 14px; background: var(--blue); box-shadow: 2px 2px 0 #0a1520; }
+    .progress-pip.done { background: var(--coral); box-shadow: 2px 2px 0 #8b0000; }
+    .progress-pip.active { background: var(--teal); box-shadow: 2px 2px 0 #2a6f72; animation: pipPulse 1s ease-in-out infinite; }
+    @keyframes pipPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .title-block { margin-bottom: 24px; }
+    .title-block h1 { font-size: 16px; color: var(--coral); text-shadow: 3px 3px 0 #8b0000; margin-bottom: 12px; line-height: 1.7; }
+    .title-block p { font-size: 10px; color: var(--teal); line-height: 2.1; }
+
+    .field-label { font-size: 9px; color: var(--teal); margin-bottom: 10px; display: block; }
+
+    .field-instruction {
+      font-size: 11px;
+      color: var(--cream);
+      line-height: 2;
+      margin-bottom: 14px;
+      padding: 14px;
+      background: #0d1f30;
+      border-left: 4px solid var(--teal);
+    }
+    .field-instruction .starter { color: var(--teal); display: block; margin-bottom: 6px; font-size: 9px; }
+
+    .px-input {
+      width: 100%;
+      background: #0d1f30;
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 14px 12px;
+      border: 3px solid var(--blue);
+      box-shadow: 4px 4px 0 #0a1520;
+      outline: none;
+      resize: none;
+      line-height: 1.9;
+      margin-bottom: 20px;
+      caret-color: var(--coral);
+      transition: border-color 0.15s;
+    }
+    .px-input:focus { border-color: var(--coral); }
+    .px-input::placeholder { color: #3a5a78; }
+
+    .px-btn {
+      display: block;
+      width: 100%;
+      background: var(--coral);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 18px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 4px 4px 0 #8b0000;
+      transition: transform 0.08s, box-shadow 0.08s;
+      letter-spacing: 1px;
+      margin-top: auto;
+    }
+    .px-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 #8b0000; }
+    .px-btn.teal-btn { background: var(--teal); color: var(--navy); box-shadow: 4px 4px 0 #2a6f72; }
+    .px-btn.teal-btn:active { box-shadow: 2px 2px 0 #2a6f72; }
+    .px-btn.secondary { background: var(--blue); box-shadow: 4px 4px 0 #1e3a50; }
+    .px-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    .sprite-canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+    /* Screen 2: character preview + power */
+    .char-preview {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
+      background: #0d1f30;
+      border: 3px solid var(--blue);
+      box-shadow: 4px 4px 0 #0a1520;
+    }
+    .power-section { flex: 1; }
+    .power-level-lbl { font-size: 8px; color: var(--teal); margin-bottom: 8px; }
+    .power-level-title { font-size: 13px; color: var(--coral); text-shadow: 2px 2px 0 #8b0000; margin-bottom: 12px; line-height: 1.5; min-height: 34px; }
+    .power-bar { display: flex; gap: 5px; }
+    .power-pip-slot { width: 18px; height: 18px; background: #1a3a55; border: 2px solid var(--blue); box-shadow: 2px 2px 0 #0a1520; transition: background 0.1s; }
+    .power-pip-slot.filled { background: var(--teal); border-color: #2a6f72; box-shadow: 2px 2px 0 #1a4a4e; animation: pipFill 0.2s ease; }
+    @keyframes pipFill { 0%{transform:scale(0.7)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
+
+    /* Equip toast */
+    #equip-toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--coral);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 12px 18px;
+      box-shadow: 4px 4px 0 #8b0000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    #equip-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Trait grid */
+    .trait-counter { font-size: 9px; color: var(--teal); margin-bottom: 14px; text-align: center; }
+    .trait-counter span { color: var(--coral); }
+    .trait-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; flex: 1; }
+    .trait-chip {
+      background: #0d1f30;
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 11px 13px;
+      border: 2px solid var(--blue);
+      box-shadow: 3px 3px 0 #0a1520;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.08s;
+      line-height: 1.4;
+    }
+    .trait-chip:active { transform: translate(1px,1px); }
+    .trait-chip.selected { background: var(--coral); border-color: #8b0000; box-shadow: 3px 3px 0 #5c0000; animation: chipPop 0.18s ease; }
+    .trait-chip.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+    @keyframes chipPop { 0%{transform:scale(0.88)} 65%{transform:scale(1.08)} 100%{transform:scale(1)} }
+
+    /* Partner screen */
+    .partner-header { text-align: center; margin-bottom: 20px; }
+    .partner-header h2 { font-size: 14px; color: var(--coral); text-shadow: 3px 3px 0 #8b0000; line-height: 1.8; }
+    .partner-sprite-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+    .section-lbl { font-size: 8px; color: var(--teal); letter-spacing: 1px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid var(--blue); }
+    .partner-traits-section { margin-bottom: 20px; }
+    .partner-trait-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .partner-trait-chip {
+      background: var(--coral);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 10px 12px;
+      border: 2px solid #8b0000;
+      box-shadow: 2px 2px 0 #5c0000;
+    }
+    .prompt-box {
+      background: #0d1f30;
+      border: 2px solid var(--teal);
+      box-shadow: 4px 4px 0 #2a6f72;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .prompt-box .prompt-q { font-size: 9px; color: var(--coral); display: block; margin-bottom: 10px; }
+    .prompt-box p { font-size: 10px; color: var(--cream); line-height: 2.2; }
+
+    /* Screen 4 */
+    .original-intention-box {
+      background: #0d1f30;
+      border: 3px solid var(--blue);
+      box-shadow: 4px 4px 0 #0a1520;
+      padding: 14px;
+      font-size: 10px;
+      color: var(--blue);
+      line-height: 1.9;
+      margin-bottom: 20px;
+      min-height: 56px;
+    }
+
+    /* Done screen */
+    .done-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+    }
+    .done-card h2 { font-size: 14px; color: var(--teal); text-shadow: 3px 3px 0 #2a6f72; line-height: 1.8; }
+    .done-card p { font-size: 10px; color: var(--cream); line-height: 2.2; }
+
+    /* Sheet view (html2canvas target) */
+    #sheet-view {
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 480px;
+      background: var(--navy);
+      padding: 28px 24px 24px;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .sheet-header { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 4px solid var(--coral); }
+    .sheet-header-text { flex: 1; }
+    .sheet-title { font-size: 8px; color: var(--teal); letter-spacing: 2px; margin-bottom: 10px; }
+    .sheet-char-name { font-size: 15px; color: var(--cream); text-shadow: 3px 3px 0 var(--blue); line-height: 1.6; }
+    .sheet-section { margin-bottom: 20px; }
+    .sheet-section-title { font-size: 8px; color: var(--coral); letter-spacing: 1px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid var(--blue); }
+    .sheet-intention { background: #0d1f30; border: 2px solid var(--teal); padding: 14px; font-size: 9px; color: var(--cream); line-height: 2; }
+    .sheet-intention .lbl { font-size: 7px; color: var(--teal); display: block; margin-bottom: 6px; }
+    .sheet-intention .refined-block { margin-top: 14px; color: var(--coral); }
+    .sheet-intention .refined-lbl { font-size: 7px; color: var(--coral); display: block; margin-bottom: 6px; }
+    .sheet-traits { display: flex; flex-wrap: wrap; gap: 8px; }
+    .sheet-trait-chip { background: var(--coral); color: var(--cream); font-family: 'Press Start 2P', monospace; font-size: 8px; padding: 9px 11px; border: 2px solid #8b0000; box-shadow: 2px 2px 0 #5c0000; }
+    .sheet-footer { text-align: center; margin-top: 20px; padding-top: 12px; border-top: 2px solid var(--blue); font-size: 7px; color: var(--blue); letter-spacing: 1px; }
+
+    /* Saving overlay */
+    #saving-overlay { display: none; position: fixed; inset: 0; background: rgba(29,53,87,0.94); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    #saving-overlay.active { display: flex; }
+    #saving-overlay p { font-size: 11px; color: var(--teal); animation: blink 0.9s step-end infinite; }
+    @keyframes blink { 50%{opacity:0} }
+  </style>
+</head>
+<body>
+
+<!-- ══ SCREEN 1: NAME + INTENTION ══ -->
+<div class="screen active" id="screen-1">
+  <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">STEP 01/04</span></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-pip active"></div><div class="progress-pip"></div>
+    <div class="progress-pip"></div><div class="progress-pip"></div>
+  </div>
+  <div class="title-block">
+    <h1>CREATE YOUR<br>CHARACTER</h1>
+    <p>Set your speaking persona<br>for this journey.</p>
+  </div>
+
+  <label class="field-label">▶ YOUR CHARACTER NAME</label>
+  <input class="px-input" type="text" id="char-name" maxlength="30"
+    placeholder="e.g. The Presence Wizard" autocomplete="off" />
+
+  <label class="field-label">▶ SET YOUR INTENTION</label>
+  <div class="field-instruction">
+    <span class="starter">Complete this sentence:</span>
+    When we meet again in one month, I want to be remembered as...
+  </div>
+  <textarea class="px-input" id="intention-1" rows="3" maxlength="200"
+    placeholder=""></textarea>
+
+  <button class="px-btn" onclick="goToTraits()">EQUIP TRAITS ▶</button>
+</div>
+
+<!-- ══ SCREEN 2: TRAIT SELECTION ══ -->
+<div class="screen" id="screen-2">
+  <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">STEP 02/04</span></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-pip done"></div><div class="progress-pip active"></div>
+    <div class="progress-pip"></div><div class="progress-pip"></div>
+  </div>
+
+  <div class="char-preview">
+    <canvas id="sprite-sm" class="sprite-canvas"></canvas>
+    <div class="power-section">
+      <div class="power-level-lbl">SPEAKER LEVEL</div>
+      <div class="power-level-title" id="power-title">NOVICE</div>
+      <div class="power-bar">
+        <div class="power-pip-slot" id="ppip-1"></div>
+        <div class="power-pip-slot" id="ppip-2"></div>
+        <div class="power-pip-slot" id="ppip-3"></div>
+        <div class="power-pip-slot" id="ppip-4"></div>
+        <div class="power-pip-slot" id="ppip-5"></div>
+        <div class="power-pip-slot" id="ppip-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="title-block">
+    <h1>EQUIP YOUR<br>TRAITS</h1>
+    <p>Pick 3 to 6 that speak to you.</p>
+  </div>
+
+  <div class="trait-counter">EQUIPPED: <span id="trait-count">0</span> / 6</div>
+  <div class="trait-grid" id="trait-grid"></div>
+  <button class="px-btn" id="traits-next-btn" onclick="goToPartner()" disabled>SHARE WITH PARTNER ▶</button>
+</div>
+
+<!-- ══ SCREEN 3: PARTNER SHARE ══ -->
+<div class="screen" id="screen-3">
+  <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">STEP 03/04</span></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-pip done"></div><div class="progress-pip done"></div>
+    <div class="progress-pip active"></div><div class="progress-pip"></div>
+  </div>
+
+  <div class="partner-header"><h2>SHARE WITH<br>YOUR PARTNER</h2></div>
+  <div class="partner-sprite-wrap">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <canvas id="sprite-lg" class="sprite-canvas"></canvas>
+      <div id="partner-char-name" style="font-size:12px;color:var(--coral);text-shadow:2px 2px 0 #8b0000;text-align:center;line-height:1.6;"></div>
+    </div>
+  </div>
+
+  <div class="partner-traits-section">
+    <div class="section-lbl">▶ YOUR EQUIPPED TRAITS</div>
+    <div class="partner-trait-wrap" id="partner-traits"></div>
+  </div>
+
+  <div class="prompt-box">
+    <span class="prompt-q">▶ Show them your traits.</span>
+    <p>Tell your partner which words you picked — and <em>why</em> they jumped out at you.</p>
+  </div>
+  <div class="prompt-box">
+    <span class="prompt-q">▶ What does it represent?</span>
+    <p>What does this version of you look like in action? How is it different from how you show up now?</p>
+  </div>
+
+  <button class="px-btn teal-btn" style="margin-top:20px;" onclick="goToRefine()">REFINE INTENTION ▶</button>
+</div>
+
+<!-- ══ SCREEN 4: REFINE + GENERATE ══ -->
+<div class="screen" id="screen-4">
+  <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">STEP 04/04</span></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-pip done"></div><div class="progress-pip done"></div>
+    <div class="progress-pip done"></div><div class="progress-pip active"></div>
+  </div>
+  <div class="title-block">
+    <h1>REFINE YOUR<br>INTENTION</h1>
+    <p>After sharing — how can you<br>make it better? How can<br>it be actionable?</p>
+  </div>
+
+  <label class="field-label">▶ YOUR ORIGINAL INTENTION</label>
+  <div class="original-intention-box" id="intention-display"></div>
+
+  <label class="field-label">▶ YOUR REFINED INTENTION</label>
+  <div class="field-instruction">
+    <span class="starter">Complete this sentence:</span>
+    At the end of this programme, I want to be remembered as...
+  </div>
+  <textarea class="px-input" id="intention-2" rows="3" maxlength="240"
+    placeholder=""></textarea>
+
+  <button class="px-btn" onclick="generateSheet()">⬛ SAVE CHARACTER SHEET</button>
+</div>
+
+<!-- ══ DONE SCREEN ══ -->
+<div class="screen" id="screen-done">
+  <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">COMPLETE</span></div>
+  <div class="done-card">
+    <canvas id="sprite-done" class="sprite-canvas"></canvas>
+    <h2>CHARACTER<br>SAVED!</h2>
+    <p>Your sheet has been downloaded.<br><br>Keep it — your intention<br>starts now.</p>
+  </div>
+  <button class="px-btn secondary" onclick="location.reload()">▶ NEW CHARACTER</button>
+</div>
+
+<!-- ══ SHEET VIEW ══ -->
+<div id="sheet-view">
+  <div class="sheet-header">
+    <canvas id="sheet-sprite" class="sprite-canvas"></canvas>
+    <div class="sheet-header-text">
+      <div class="sheet-title">// CHARACTER SHEET //</div>
+      <div class="sheet-char-name" id="sheet-name"></div>
+    </div>
+  </div>
+  <div class="sheet-section">
+    <div class="sheet-section-title">▶ INTENTION</div>
+    <div class="sheet-intention">
+      <span class="lbl">ORIGINAL</span><span id="sheet-intention-1"></span>
+      <div class="refined-block">
+        <span class="refined-lbl">REFINED</span><span id="sheet-intention-2"></span>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-section">
+    <div class="sheet-section-title">▶ EQUIPPED TRAITS</div>
+    <div class="sheet-traits" id="sheet-traits"></div>
+  </div>
+  <div class="sheet-footer">RHETORIQO · SPEAK WITH INTENTION</div>
+</div>
+
+<div id="equip-toast"></div>
+<div id="saving-overlay"><p>SAVING CHARACTER...</p></div>
+
+<script>
+  const SESSION_CODE = '{{ code }}';
+  const LEVELS = ['NOVICE','LEARNER','STUDENT','APPRENTICE','SKILLED','EXPERT','MASTER'];
+
+  const TRAITS = [
+    'Calm','Grounded','Steady','Measured','Composed','Unhurried','Still','Centred','Resilient','Assured',
+    'Bold','Commanding','Powerful','Direct','Assertive','Magnetic','Striking','Unapologetic','Decisive',
+    'Authoritative','Confident','Persuasive',
+    'Warm','Approachable','Inviting','Playful','Generous','Energising','Joyful','Light','Inclusive',
+    'Collaborative','Diplomatic',
+    'Clear','Precise','Purposeful','Focused','Thoughtful','Curious','Inspiring','Authentic','Expressive',
+    'Dynamic','Spontaneous','Challenging','Empowering','Connecting','Vulnerable','Honest','Credible',
+    'Influential','Strategic','Polished','Engaging','Adaptable','Facilitative','Trustworthy','Concise',
+  ];
+
+  const shuffled = [...TRAITS].sort(() => Math.random() - 0.5);
+  let selected = new Set();
+  const MAX = 6, MIN = 3;
+
+  function buildTraitGrid() {
+    const grid = document.getElementById('trait-grid');
+    shuffled.forEach(trait => {
+      const chip = document.createElement('div');
+      chip.className = 'trait-chip';
+      chip.textContent = trait;
+      chip.dataset.trait = trait;
+      chip.addEventListener('click', () => toggleTrait(chip, trait));
+      grid.appendChild(chip);
+    });
+  }
+
+  function toggleTrait(chip, trait) {
+    if (selected.has(trait)) {
+      selected.delete(trait);
+      chip.classList.remove('selected');
+    } else {
+      if (selected.size >= MAX) return;
+      selected.add(trait);
+      chip.classList.add('selected');
+      showToast(trait);
+    }
+    updateTraitUI();
+  }
+
+  function showToast(trait) {
+    const toast = document.getElementById('equip-toast');
+    toast.textContent = '▶ ' + trait.toUpperCase() + ' EQUIPPED!';
+    toast.classList.add('visible');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('visible'), 1400);
+  }
+
+  function updateTraitUI() {
+    const count = selected.size;
+    document.getElementById('trait-count').textContent = count;
+    document.getElementById('power-title').textContent = LEVELS[count] || 'MASTER';
+    for (let i = 1; i <= 6; i++) {
+      document.getElementById('ppip-' + i).classList.toggle('filled', i <= count);
+    }
+    const btn = document.getElementById('traits-next-btn');
+    btn.disabled = count < MIN;
+    document.querySelectorAll('.trait-chip').forEach(chip => {
+      if (!selected.has(chip.dataset.trait)) {
+        chip.classList.toggle('disabled', count >= MAX);
+      }
+    });
+    renderSprite(document.getElementById('sprite-sm'), [...selected], 8);
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function goToTraits() {
+    const name = document.getElementById('char-name').value.trim();
+    const intention = document.getElementById('intention-1').value.trim();
+    if (!name) { alert('Enter your character name first!'); return; }
+    if (!intention) { alert('Write your intention first!'); return; }
+    renderSprite(document.getElementById('sprite-sm'), [...selected], 8);
+    showScreen('screen-2');
+  }
+
+  function goToPartner() {
+    if (selected.size < MIN) return;
+    const wrap = document.getElementById('partner-traits');
+    wrap.innerHTML = '';
+    [...selected].forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'partner-trait-chip';
+      chip.textContent = t;
+      wrap.appendChild(chip);
+    });
+    renderSprite(document.getElementById('sprite-lg'), [...selected], 12);
+    document.getElementById('partner-char-name').textContent = document.getElementById('char-name').value.trim();
+    showScreen('screen-3');
+  }
+
+  function goToRefine() {
+    const orig = document.getElementById('intention-1').value.trim();
+    document.getElementById('intention-display').textContent = orig;
+    document.getElementById('intention-2').value = '';
+    showScreen('screen-4');
+  }
+
+  function generateSheet() {
+    const name = document.getElementById('char-name').value.trim();
+    const int1 = document.getElementById('intention-1').value.trim();
+    const int2 = document.getElementById('intention-2').value.trim();
+    if (!int2) { alert('Add your refined intention first!'); return; }
+
+    document.getElementById('sheet-name').textContent = name;
+    document.getElementById('sheet-intention-1').textContent = int1;
+    document.getElementById('sheet-intention-2').textContent = int2;
+
+    const traitsEl = document.getElementById('sheet-traits');
+    traitsEl.innerHTML = '';
+    [...selected].forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'sheet-trait-chip';
+      chip.textContent = t;
+      traitsEl.appendChild(chip);
+    });
+
+    renderSprite(document.getElementById('sheet-sprite'), [...selected], 9);
+    renderSprite(document.getElementById('sprite-done'), [...selected], 9);
+
+    document.getElementById('saving-overlay').classList.add('active');
+
+    // Save to server first, then download
+    fetch('/save/' + SESSION_CODE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        char_name: name,
+        sprite_index: 0,
+        intention_original: int1,
+        intention_refined: int2,
+        traits: [...selected]
+      })
+    })
+    .catch(() => {}) // Don't block download on network error
+    .finally(() => {
+      setTimeout(() => {
+        const sheet = document.getElementById('sheet-view');
+        sheet.style.position = 'absolute';
+        sheet.style.left = '0';
+        sheet.style.top = '0';
+        sheet.style.zIndex = '-1';
+
+        html2canvas(sheet, {
+          backgroundColor: '#1D3557',
+          scale: 2,
+          useCORS: true,
+          logging: false
+        }).then(canvas => {
+          sheet.style.position = 'fixed';
+          sheet.style.left = '-9999px';
+          const link = document.createElement('a');
+          link.download = name.replace(/\s+/g, '-').toLowerCase() + '-character-sheet.jpg';
+          link.href = canvas.toDataURL('image/jpeg', 0.95);
+          link.click();
+          document.getElementById('saving-overlay').classList.remove('active');
+          showScreen('screen-done');
+        });
+      }, 300);
+    });
+  }
+
+  buildTraitGrid();
+</script>
+</body>
+</html>

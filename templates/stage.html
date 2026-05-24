@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Speaking Stage // RhetoriQo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="/static/sprites.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:  #1D3557;
+      --cream: #F1FAEE;
+      --coral: #E63946;
+      --teal:  #A8DADC;
+      --blue:  #457B9D;
+      --dark:  #0d1f30;
+      --room-wall: #162844;
+      --floor: #0a1520;
+    }
+    html, body {
+      background: var(--navy);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── CONTROLS (not captured) ── */
+    .controls {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(13,31,48,0.97);
+      border-bottom: 3px solid var(--blue);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 500;
+      gap: 12px;
+    }
+    .ctrl-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .ctrl-logo { font-size: 8px; color: var(--teal); }
+    .ctrl-count { font-size: 8px; color: var(--coral); }
+    .ctrl-btns { display: flex; gap: 8px; }
+    .ctrl-btn {
+      background: var(--coral);
+      color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 10px 14px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #8b0000;
+      white-space: nowrap;
+    }
+    .ctrl-btn:active { transform: translate(1px,1px); box-shadow: 2px 2px 0 #8b0000; }
+    .ctrl-btn.blue { background: var(--blue); box-shadow: 3px 3px 0 #1e3a50; }
+    .ctrl-back { font-size: 8px; color: var(--blue); text-decoration: none; }
+
+    /* ── STAGE CAPTURE ── */
+    #stage-capture {
+      padding-top: 70px; /* clear controls */
+      min-height: 100vh;
+    }
+
+    /* ── MEETING ROOM ── */
+    .meeting-room {
+      background: var(--room-wall);
+      min-height: calc(100vh - 70px);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 32px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Pixel wall texture lines */
+    .meeting-room::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: repeating-linear-gradient(90deg,
+        var(--blue) 0, var(--blue) 8px,
+        transparent 8px, transparent 12px);
+      opacity: 0.4;
+    }
+
+    /* Room header */
+    .room-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid var(--blue);
+    }
+    .room-logo { font-size: 8px; color: var(--teal); letter-spacing: 2px; }
+    .room-title { font-size: 14px; color: var(--coral); text-shadow: 3px 3px 0 #8b0000; }
+
+    /* Presentation screen at the front of the room */
+    .pres-screen-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .pres-screen {
+      width: 100%;
+      max-width: 700px;
+      background: #0e2235;
+      border: 4px solid var(--teal);
+      box-shadow:
+        0 0 0 2px #2a6f72,
+        6px 6px 0 #0a1520;
+      padding: 20px 28px;
+      position: relative;
+    }
+    /* Projector beam effect */
+    .pres-screen::before {
+      content: '';
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 40px solid transparent;
+      border-right: 40px solid transparent;
+      border-top: 20px solid rgba(168,218,220,0.15);
+    }
+    .pres-inner {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .pres-logo-col {
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .pres-brand {
+      font-size: 9px;
+      color: var(--teal);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .pres-main-title {
+      font-size: 16px;
+      color: var(--coral);
+      text-shadow: 3px 3px 0 #8b0000;
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .pres-slide-lines { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .slide-line {
+      height: 5px;
+      background: var(--blue);
+      opacity: 0.5;
+      box-shadow: 2px 2px 0 #0a1520;
+    }
+    .slide-line.short { width: 60%; }
+    .slide-line.shorter { width: 40%; }
+
+    /* Characters area */
+    .speakers-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .speakers-label {
+      font-size: 7px;
+      color: var(--blue);
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+    .characters-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 20px;
+      padding-bottom: 24px;
+    }
+
+    /* Individual character card */
+    .char-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .char-card canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+    .char-name {
+      font-size: 8px;
+      color: var(--cream);
+      text-align: center;
+      max-width: 110px;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    /* Conference table */
+    .conf-table-wrap {
+      width: 100%;
+      padding: 0 20px;
+    }
+    .conf-table {
+      background: var(--blue);
+      border-top: 6px solid var(--teal);
+      border-left: 4px solid #2a6f72;
+      border-right: 4px solid #2a6f72;
+      box-shadow: 0 8px 0 #0a1520, inset 0 -4px 0 rgba(0,0,0,0.2);
+      height: 32px;
+      position: relative;
+    }
+    .conf-table::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg,
+        transparent, transparent 40px,
+        rgba(255,255,255,0.04) 40px, rgba(255,255,255,0.04) 42px);
+    }
+    .table-base {
+      height: 16px;
+      background: #1e3a50;
+      border-left: 4px solid #2a6f72;
+      border-right: 4px solid #2a6f72;
+      border-bottom: 4px solid #0a1520;
+    }
+
+    /* Floor */
+    .room-floor {
+      height: 48px;
+      background: var(--floor);
+      border-top: 4px solid #1a3a55;
+      flex-shrink: 0;
+    }
+
+    /* Room footer */
+    .room-footer {
+      background: var(--floor);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 2px solid var(--blue);
+    }
+    .room-footer .footer-brand { font-size: 7px; color: var(--blue); letter-spacing: 2px; }
+    .room-footer .footer-tagline { font-size: 7px; color: var(--teal); letter-spacing: 1px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--blue);
+    }
+    .empty-state p { font-size: 10px; line-height: 2.4; }
+
+    /* Loading */
+    #loading { text-align: center; padding: 120px 20px; }
+    #loading p { font-size: 10px; color: var(--teal); animation: blink 0.9s step-end infinite; }
+    @keyframes blink { 50%{opacity:0} }
+
+    /* Saving overlay */
+    #saving-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,31,48,0.95);
+      z-index: 1000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    #saving-overlay.active { display: flex; }
+    #saving-overlay p { font-size: 11px; color: var(--teal); animation: blink 0.9s step-end infinite; }
+  </style>
+</head>
+<body>
+
+<!-- ── CONTROLS (excluded from download) ── -->
+<div class="controls" id="controls-bar">
+  <div class="ctrl-left">
+    <span class="ctrl-logo">RHETORIQO</span>
+    <span class="ctrl-count" id="ctrl-count">loading...</span>
+  </div>
+  <div class="ctrl-btns">
+    <a href="/" class="ctrl-back">◀ BACK</a>
+    <button class="ctrl-btn blue" onclick="loadCharacters()">↺ REFRESH</button>
+    <button class="ctrl-btn" onclick="downloadStage()">⬛ DOWNLOAD IMAGE</button>
+  </div>
+</div>
+
+<!-- ── STAGE (captured for download) ── -->
+<div id="stage-capture">
+  <div id="loading"><p>LOADING ROOM...</p></div>
+
+  <div class="meeting-room" id="meeting-room" style="display:none;">
+    <!-- Room header -->
+    <div class="room-header">
+      <span class="room-logo">// RHETORIQO //</span>
+      <span class="room-title">THE SPEAKING STAGE</span>
+    </div>
+
+    <!-- Presentation screen -->
+    <div class="pres-screen-wrap">
+      <div class="pres-screen">
+        <div class="pres-inner">
+          <div class="pres-logo-col">
+            <div class="pres-brand">RHETORIQO</div>
+            <div class="pres-main-title">SPEAK<br>WITH<br>INTENTION</div>
+          </div>
+          <div class="pres-slide-lines">
+            <div class="slide-line"></div>
+            <div class="slide-line short"></div>
+            <div class="slide-line"></div>
+            <div class="slide-line shorter"></div>
+            <div class="slide-line"></div>
+            <div class="slide-line short"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speakers -->
+    <div class="speakers-section">
+      <div class="speakers-label" id="speakers-label">▶ SPEAKERS</div>
+      <div class="characters-row" id="characters-row"></div>
+    </div>
+
+    <!-- Conference table -->
+    <div class="conf-table-wrap">
+      <div class="conf-table"></div>
+      <div class="table-base"></div>
+    </div>
+
+    <div class="room-floor"></div>
+
+    <!-- Footer -->
+    <div class="room-footer">
+      <span class="footer-brand">RHETORIQO</span>
+      <span class="footer-tagline">SPEAK WITH INTENTION</span>
+    </div>
+  </div>
+</div>
+
+<div id="saving-overlay"><p>SAVING IMAGE...</p></div>
+
+<script>
+  const SESSION_CODE = '{{ code }}';
+
+  function getPixelSize(count) {
+    if (count <= 5)  return 9;
+    if (count <= 8)  return 7;
+    if (count <= 12) return 6;
+    return 5;
+  }
+
+  function buildRoom(chars) {
+    const row = document.getElementById('characters-row');
+    row.innerHTML = '';
+
+    if (!chars.length) {
+      row.innerHTML = '<div class="empty-state"><p>No speakers yet.<br><br>Ask learners to scan the QR code.</p></div>';
+      return;
+    }
+
+    const px = getPixelSize(chars.length);
+    document.getElementById('speakers-label').textContent =
+      '▶ ' + chars.length + ' SPEAKER' + (chars.length !== 1 ? 'S' : '');
+
+    chars.forEach(char => {
+      const card = document.createElement('div');
+      card.className = 'char-card';
+
+      const canvas = document.createElement('canvas');
+      canvas.style.imageRendering = 'pixelated';
+      renderSprite(canvas, char.traits || [], px);
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'char-name';
+      nameEl.textContent = char.char_name;
+
+      card.appendChild(canvas);
+      card.appendChild(nameEl);
+      row.appendChild(card);
+    });
+  }
+
+  function loadCharacters() {
+    fetch('/api/session/' + SESSION_CODE)
+      .then(r => r.json())
+      .then(data => {
+        const chars = data.characters || [];
+        document.getElementById('ctrl-count').textContent =
+          chars.length + ' speaker' + (chars.length !== 1 ? 's' : '') + ' joined';
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('meeting-room').style.display = 'flex';
+        buildRoom(chars);
+      })
+      .catch(() => {
+        document.getElementById('loading').innerHTML =
+          '<p style="color:var(--coral)">ERROR LOADING. REFRESH TO TRY AGAIN.</p>';
+      });
+  }
+
+  function downloadStage() {
+    const overlay = document.getElementById('saving-overlay');
+    const controls = document.getElementById('controls-bar');
+    overlay.classList.add('active');
+    controls.style.display = 'none';
+
+    // Remove top padding while capturing (controls bar is hidden)
+    const capture = document.getElementById('stage-capture');
+    capture.style.paddingTop = '0';
+
+    html2canvas(capture, {
+      backgroundColor: '#162844',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    }).then(canvas => {
+      capture.style.paddingTop = '70px';
+      controls.style.display = 'flex';
+      overlay.classList.remove('active');
+      const link = document.createElement('a');
+      link.download = 'rhetoriqo-speaking-stage.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    });
+  }
+
+  loadCharacters();
+  setInterval(loadCharacters, 10000);
+</script>
+</body>
+</html>
