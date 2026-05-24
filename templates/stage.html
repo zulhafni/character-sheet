@@ -213,6 +213,32 @@
       line-height: 1.7;
       word-break: break-word;
     }
+    .char-intention {
+      position: relative;
+      max-width: 110px;
+      font-size: 6px;
+      color: var(--teal);
+      text-align: center;
+      line-height: 1.9;
+      word-break: break-word;
+      border: 1px solid var(--teal);
+      padding: 5px 7px;
+      margin-top: 2px;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .char-intention::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid var(--teal);
+    }
 
     /* Conference table */
     .conf-table-wrap {
@@ -400,6 +426,14 @@
 
       card.appendChild(canvas);
       card.appendChild(nameEl);
+
+      if (char.intention_refined) {
+        const intentionEl = document.createElement('div');
+        intentionEl.className = 'char-intention';
+        intentionEl.textContent = '“' + char.intention_refined + '”';
+        card.appendChild(intentionEl);
+      }
+
       row.appendChild(card);
     });
   }
