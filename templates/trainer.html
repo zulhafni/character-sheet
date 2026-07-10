@@ -47,7 +47,10 @@
     .trainer-tag { font-size: 8px; color: var(--coral); }
 
     h1 { font-size: 18px; color: var(--coral); text-shadow: 4px 4px 0 #8b0000; line-height: 1.6; margin-bottom: 10px; }
-    .subtitle { font-size: 10px; color: var(--teal); margin-bottom: 36px; line-height: 2; }
+    .subtitle { font-size: 10px; color: var(--teal); margin-bottom: 16px; line-height: 2; }
+    .mode-badge { display: inline-block; font-size: 8px; padding: 10px 14px; margin-bottom: 36px; box-shadow: 3px 3px 0 #0a1520; }
+    .mode-badge.mode-kick { background: var(--blue); color: var(--cream); }
+    .mode-badge.mode-mid { background: var(--teal); color: var(--navy); box-shadow: 3px 3px 0 #2a6f72; }
 
     .main-grid {
       display: grid;
@@ -149,6 +152,9 @@
 
   <h1>SESSION<br>ACTIVE</h1>
   <p class="subtitle"><span class="status-dot"></span>Learners can now join via QR or link.</p>
+  <div class="mode-badge {{ 'mode-mid' if mode == 'midcheck' else 'mode-kick' }}">
+    ▶ MODE: {{ 'MID-PROGRAMME CHECK' if mode == 'midcheck' else 'KICKOFF' }}
+  </div>
 
   <div class="main-grid">
     <!-- QR CODE -->
@@ -174,7 +180,8 @@
 
   <div class="btn-row">
     <a class="px-btn teal" href="/stage/{{ code }}">▶ VIEW STAGE</a>
-    <a class="px-btn ghost" href="/new-session" onclick="return confirm('Start a fresh session? Current data will remain saved.')">NEW SESSION</a>
+    <a class="px-btn ghost" href="/new-session?mode=kickoff" onclick="return confirm('Start a fresh KICKOFF session? Current data will remain saved.')">NEW KICKOFF</a>
+    <a class="px-btn ghost" href="/new-session?mode=midcheck" onclick="return confirm('Start a fresh MID-CHECK session? Current data will remain saved.')">NEW MID-CHECK</a>
   </div>
 </div>
 

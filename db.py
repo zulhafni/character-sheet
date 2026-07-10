@@ -11,8 +11,13 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS sessions (
         code TEXT PRIMARY KEY,
-        created_at TEXT
+        created_at TEXT,
+        mode TEXT DEFAULT 'kickoff'
     )''')
+    # Migration: add mode column if this DB predates it
+    existing = [row[1] for row in c.execute('PRAGMA table_info(sessions)').fetchall()]
+    if 'mode' not in existing:
+        c.execute("ALTER TABLE sessions ADD COLUMN mode TEXT DEFAULT 'kickoff'")
     c.execute('''CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_code TEXT,
@@ -27,12 +32,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-def create_session():
+def create_session(mode='kickoff'):
+    if mode not in ('kickoff', 'midcheck'):
+        mode = 'kickoff'
     code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('INSERT INTO sessions (code, created_at) VALUES (?, ?)',
-              (code, datetime.now().isoformat()))
+    c.execute('INSERT INTO sessions (code, created_at, mode) VALUES (?, ?, ?)',
+              (code, datetime.now().isoformat(), mode))
     conn.commit()
     conn.close()
     return code
@@ -44,6 +51,14 @@ def get_latest_session():
     row = c.fetchone()
     conn.close()
     return row[0] if row else None
+
+def get_session_mode(code):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT mode FROM sessions WHERE code = ?', (code,))
+    row = c.fetchone()
+    conn.close()
+    return (row[0] if row and row[0] else 'kickoff')
 
 def session_exists(code):
     conn = sqlite3.connect(DB_PATH)

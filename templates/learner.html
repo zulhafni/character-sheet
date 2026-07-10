@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Character Sheet // RhetoriQo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="/static/sprites.js"></script>
   <style>
@@ -62,6 +62,17 @@
 
     .title-block { margin-bottom: 24px; }
     .title-block h1 { font-size: 16px; color: var(--coral); text-shadow: 3px 3px 0 #8b0000; margin-bottom: 12px; line-height: 1.7; }
+    .title-block h1.mc-hero {
+      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.5;
+      letter-spacing: 0.3px;
+      color: var(--cream);
+      text-shadow: none;
+      margin-bottom: 16px;
+    }
+    .title-block h1.mc-hero .accent { color: var(--coral); }
     .title-block p { font-size: 10px; color: var(--teal); line-height: 2.1; }
 
     .field-label { font-size: 9px; color: var(--teal); margin-bottom: 10px; display: block; }
@@ -276,6 +287,21 @@
     <div class="progress-pip active"></div><div class="progress-pip"></div>
     <div class="progress-pip"></div><div class="progress-pip"></div>
   </div>
+  {% if midcheck %}
+  <div class="title-block">
+    <h1 class="mc-hero">You've gone through a journey of speaking growth — <span class="accent">let's check in on your progress.</span></h1>
+  </div>
+
+  <label class="field-label">▶ HOW WOULD YOU DESCRIBE YOURSELF NOW?</label>
+  <input class="px-input" type="text" id="char-name" maxlength="30"
+    placeholder="e.g. The Confident Connector" autocomplete="off" />
+
+  <label class="field-label">▶ SET YOUR INTENTION</label>
+  <div class="field-instruction">
+    <span class="starter">Complete this sentence:</span>
+    My intention for the remainder of this programme is ...
+  </div>
+  {% else %}
   <div class="title-block">
     <h1>CREATE YOUR<br>CHARACTER</h1>
     <p>Set your speaking persona<br>for this journey.</p>
@@ -290,6 +316,7 @@
     <span class="starter">Complete this sentence:</span>
     When we meet again in one month, I want to be remembered as...
   </div>
+  {% endif %}
   <textarea class="px-input" id="intention-1" rows="3" maxlength="200"
     placeholder=""></textarea>
 
@@ -320,10 +347,17 @@
     </div>
   </div>
 
+  {% if midcheck %}
+  <div class="title-block">
+    <h1>TRAITS YOU'VE<br>GROWN INTO</h1>
+    <p>Pick 3 to 6 that describe<br>you now.</p>
+  </div>
+  {% else %}
   <div class="title-block">
     <h1>EQUIP YOUR<br>TRAITS</h1>
     <p>Pick 3 to 6 that speak to you.</p>
   </div>
+  {% endif %}
 
   <div class="trait-counter">EQUIPPED: <span id="trait-count">0</span> / 6</div>
   <div class="trait-grid" id="trait-grid"></div>
@@ -351,6 +385,16 @@
     <div class="partner-trait-wrap" id="partner-traits"></div>
   </div>
 
+  {% if midcheck %}
+  <div class="prompt-box">
+    <span class="prompt-q">▶ Show them your traits.</span>
+    <p>Tell your partner which words describe you now — and <em>how you've changed</em> since Session 1.</p>
+  </div>
+  <div class="prompt-box">
+    <span class="prompt-q">▶ How far have you come?</span>
+    <p>What has shifted since the start? What still feels like a stretch you're working on?</p>
+  </div>
+  {% else %}
   <div class="prompt-box">
     <span class="prompt-q">▶ Show them your traits.</span>
     <p>Tell your partner which words you picked — and <em>why</em> they jumped out at you.</p>
@@ -359,6 +403,7 @@
     <span class="prompt-q">▶ What does it represent?</span>
     <p>What does this version of you look like in action? How is it different from how you show up now?</p>
   </div>
+  {% endif %}
 
   <button class="px-btn teal-btn" style="margin-top:20px;" onclick="goToRefine()">REFINE INTENTION ▶</button>
 </div>
@@ -375,6 +420,16 @@
     <p>After sharing — how can you<br>make it better? How can<br>it be actionable?</p>
   </div>
 
+  {% if midcheck %}
+  <label class="field-label">▶ YOUR INTENTION SO FAR</label>
+  <div class="original-intention-box" id="intention-display"></div>
+
+  <label class="field-label">▶ YOUR SHARPENED INTENTION</label>
+  <div class="field-instruction">
+    <span class="starter">Complete this sentence:</span>
+    My sharpened intention for the remainder of this programme is...
+  </div>
+  {% else %}
   <label class="field-label">▶ YOUR ORIGINAL INTENTION</label>
   <div class="original-intention-box" id="intention-display"></div>
 
@@ -383,10 +438,11 @@
     <span class="starter">Complete this sentence:</span>
     At the end of this programme, I want to be remembered as...
   </div>
+  {% endif %}
   <textarea class="px-input" id="intention-2" rows="3" maxlength="240"
     placeholder=""></textarea>
 
-  <button class="px-btn" onclick="generateSheet()">⬛ SAVE CHARACTER SHEET</button>
+  <button class="px-btn" onclick="generateSheet()">{% if midcheck %}⬛ SAVE PROGRESS SHEET{% else %}⬛ SAVE CHARACTER SHEET{% endif %}</button>
 </div>
 
 <!-- ══ DONE SCREEN ══ -->
@@ -394,8 +450,13 @@
   <div class="header"><span class="logo">RHETORIQO</span><span class="step-label">COMPLETE</span></div>
   <div class="done-card">
     <canvas id="sprite-done" class="sprite-canvas"></canvas>
+    {% if midcheck %}
+    <h2>CHECKPOINT<br>SAVED!</h2>
+    <p>Your progress sheet has<br>been downloaded.<br><br>The second half is<br>where it counts.</p>
+    {% else %}
     <h2>CHARACTER<br>SAVED!</h2>
     <p>Your sheet has been downloaded.<br><br>Keep it — your intention<br>starts now.</p>
+    {% endif %}
   </div>
   <button class="px-btn secondary" onclick="location.reload()">▶ NEW CHARACTER</button>
 </div>
@@ -405,16 +466,16 @@
   <div class="sheet-header">
     <canvas id="sheet-sprite" class="sprite-canvas"></canvas>
     <div class="sheet-header-text">
-      <div class="sheet-title">// CHARACTER SHEET //</div>
+      <div class="sheet-title">{% if midcheck %}// PROGRESS CHECK //{% else %}// CHARACTER SHEET //{% endif %}</div>
       <div class="sheet-char-name" id="sheet-name"></div>
     </div>
   </div>
   <div class="sheet-section">
     <div class="sheet-section-title">▶ INTENTION</div>
     <div class="sheet-intention">
-      <span class="lbl">ORIGINAL</span><span id="sheet-intention-1"></span>
+      <span class="lbl">{% if midcheck %}SO FAR{% else %}ORIGINAL{% endif %}</span><span id="sheet-intention-1"></span>
       <div class="refined-block">
-        <span class="refined-lbl">REFINED</span><span id="sheet-intention-2"></span>
+        <span class="refined-lbl">{% if midcheck %}SHARPENED{% else %}REFINED{% endif %}</span><span id="sheet-intention-2"></span>
       </div>
     </div>
   </div>
@@ -430,6 +491,7 @@
 
 <script>
   const SESSION_CODE = '{{ code }}';
+  const MIDCHECK = {{ 'true' if midcheck else 'false' }};
   const LEVELS = ['NOVICE','LEARNER','STUDENT','APPRENTICE','SKILLED','EXPERT','MASTER'];
 
   const TRAITS = [
@@ -588,7 +650,7 @@
           sheet.style.position = 'fixed';
           sheet.style.left = '-9999px';
           const link = document.createElement('a');
-          link.download = name.replace(/\s+/g, '-').toLowerCase() + '-character-sheet.jpg';
+          link.download = name.replace(/\s+/g, '-').toLowerCase() + (MIDCHECK ? '-progress-check.jpg' : '-character-sheet.jpg');
           link.href = canvas.toDataURL('image/jpeg', 0.95);
           link.click();
           document.getElementById('saving-overlay').classList.remove('active');

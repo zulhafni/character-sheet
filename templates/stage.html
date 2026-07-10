@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Speaking Stage // RhetoriQo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="/static/sprites.js"></script>
   <style>
@@ -313,6 +313,79 @@
     }
     #saving-overlay.active { display: flex; }
     #saving-overlay p { font-size: 11px; color: var(--teal); animation: blink 0.9s step-end infinite; }
+
+    /* ── SPOTLIGHT (presenter mode) ── */
+    .char-card { cursor: pointer; transition: transform 0.08s; }
+    .char-card:hover { transform: translateY(-4px); }
+
+    #spotlight {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,21,32,0.98);
+      z-index: 800;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #spotlight.active { display: flex; }
+    .spot-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      background: var(--coral); color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px; padding: 12px 16px;
+      border: none; cursor: pointer;
+      box-shadow: 3px 3px 0 #8b0000;
+    }
+    .spot-close:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #8b0000; }
+    .spot-stage {
+      display: flex; align-items: center; gap: 28px;
+      width: 100%; max-width: 1000px; justify-content: center;
+    }
+    .spot-arrow {
+      background: var(--blue); color: var(--cream);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 20px; padding: 22px 18px;
+      border: none; cursor: pointer;
+      box-shadow: 4px 4px 0 #1e3a50; flex-shrink: 0;
+    }
+    .spot-arrow:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 #1e3a50; }
+    .spot-card {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 22px; text-align: center; flex: 1; min-width: 0;
+    }
+    .spot-card canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .spot-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 22px; color: var(--coral);
+      text-shadow: 3px 3px 0 #8b0000; line-height: 1.6;
+    }
+    .spot-intention {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 22px; font-weight: 500; color: var(--teal);
+      line-height: 1.5; max-width: 600px;
+      border-left: 4px solid var(--teal); padding: 6px 20px;
+    }
+    .spot-traits { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .spot-trait {
+      font-family: 'Press Start 2P', monospace; font-size: 9px;
+      background: var(--blue); color: var(--cream);
+      padding: 9px 11px; box-shadow: 2px 2px 0 #0a1520;
+    }
+    .spot-counter {
+      position: absolute; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px; color: var(--blue); letter-spacing: 1px;
+    }
+    @media (max-width: 640px) {
+      .spot-name { font-size: 15px; }
+      .spot-intention { font-size: 15px; }
+      .spot-arrow { font-size: 14px; padding: 16px 12px; }
+      .spot-stage { gap: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -326,6 +399,7 @@
   <div class="ctrl-btns">
     <a href="/" class="ctrl-back">◀ BACK</a>
     <button class="ctrl-btn blue" onclick="loadCharacters()">↺ REFRESH</button>
+    <button class="ctrl-btn" onclick="openSpotlight(0)">★ SPOTLIGHT</button>
     <button class="ctrl-btn" onclick="downloadStage()">⬛ DOWNLOAD IMAGE</button>
   </div>
 </div>
@@ -338,7 +412,7 @@
     <!-- Room header -->
     <div class="room-header">
       <span class="room-logo">// RHETORIQO //</span>
-      <span class="room-title">THE SPEAKING STAGE</span>
+      <span class="room-title">{% if midcheck %}MID-PROGRAMME CHECK{% else %}THE SPEAKING STAGE{% endif %}</span>
     </div>
 
     <!-- Presentation screen -->
@@ -385,8 +459,26 @@
 
 <div id="saving-overlay"><p>SAVING IMAGE...</p></div>
 
+<!-- ── SPOTLIGHT (presenter mode) ── -->
+<div id="spotlight" onclick="if(event.target===this) closeSpotlight()">
+  <button class="spot-close" onclick="closeSpotlight()">✕ CLOSE [ESC]</button>
+  <div class="spot-stage">
+    <button class="spot-arrow" onclick="spotNav(-1)">◀</button>
+    <div class="spot-card">
+      <canvas id="spot-canvas"></canvas>
+      <div class="spot-name" id="spot-name"></div>
+      <div class="spot-intention" id="spot-intention"></div>
+      <div class="spot-traits" id="spot-traits"></div>
+    </div>
+    <button class="spot-arrow" onclick="spotNav(1)">▶</button>
+  </div>
+  <div class="spot-counter" id="spot-counter"></div>
+</div>
+
 <script>
   const SESSION_CODE = '{{ code }}';
+  let currentChars = [];
+  let spotIndex = 0;
 
   function getPixelSize(count) {
     if (count <= 5)  return 9;
@@ -408,9 +500,11 @@
     document.getElementById('speakers-label').textContent =
       '▶ ' + chars.length + ' SPEAKER' + (chars.length !== 1 ? 'S' : '');
 
-    chars.forEach(char => {
+    chars.forEach((char, idx) => {
       const card = document.createElement('div');
       card.className = 'char-card';
+      card.title = 'Click to spotlight';
+      card.addEventListener('click', () => openSpotlight(idx));
 
       const canvas = document.createElement('canvas');
       canvas.style.imageRendering = 'pixelated';
@@ -439,11 +533,17 @@
       .then(r => r.json())
       .then(data => {
         const chars = data.characters || [];
+        currentChars = chars;
         document.getElementById('ctrl-count').textContent =
           chars.length + ' speaker' + (chars.length !== 1 ? 's' : '') + ' joined';
         document.getElementById('loading').style.display = 'none';
         document.getElementById('meeting-room').style.display = 'flex';
         buildRoom(chars);
+        // Keep an open spotlight in sync with refreshed data
+        if (document.getElementById('spotlight').classList.contains('active')) {
+          if (!chars.length) closeSpotlight();
+          else renderSpot();
+        }
       })
       .catch(() => {
         document.getElementById('loading').innerHTML =
@@ -476,6 +576,64 @@
       link.click();
     });
   }
+
+  function spotPixelSize() {
+    const h = Math.floor(window.innerHeight * 0.42 / 16);
+    return Math.max(16, Math.min(48, h));
+  }
+
+  function renderSpot() {
+    if (!currentChars.length) return;
+    spotIndex = (spotIndex % currentChars.length + currentChars.length) % currentChars.length;
+    const char = currentChars[spotIndex];
+
+    renderSprite(document.getElementById('spot-canvas'), char.traits || [], spotPixelSize());
+    document.getElementById('spot-name').textContent = char.char_name || '';
+
+    const intEl = document.getElementById('spot-intention');
+    if (char.intention_refined) {
+      intEl.textContent = '“' + char.intention_refined + '”';
+      intEl.style.display = '';
+    } else {
+      intEl.style.display = 'none';
+    }
+
+    const traitsEl = document.getElementById('spot-traits');
+    traitsEl.innerHTML = '';
+    (char.traits || []).forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'spot-trait';
+      chip.textContent = t;
+      traitsEl.appendChild(chip);
+    });
+
+    document.getElementById('spot-counter').textContent =
+      (spotIndex + 1) + ' / ' + currentChars.length + '   ·   ◀ ▶ TO CYCLE   ·   ESC TO CLOSE';
+  }
+
+  function openSpotlight(i) {
+    if (!currentChars.length) return;
+    spotIndex = i || 0;
+    document.getElementById('spotlight').classList.add('active');
+    renderSpot();
+  }
+
+  function closeSpotlight() {
+    document.getElementById('spotlight').classList.remove('active');
+  }
+
+  function spotNav(delta) {
+    if (!currentChars.length) return;
+    spotIndex += delta;
+    renderSpot();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('spotlight').classList.contains('active')) return;
+    if (e.key === 'ArrowRight') spotNav(1);
+    else if (e.key === 'ArrowLeft') spotNav(-1);
+    else if (e.key === 'Escape') closeSpotlight();
+  });
 
   loadCharacters();
   setInterval(loadCharacters, 10000);

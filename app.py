@@ -5,7 +5,7 @@ import os
 import qrcode
 import qrcode.constants
 from db import init_db, create_session, get_latest_session, session_exists, \
-               save_character, get_characters, get_character_count
+               save_character, get_characters, get_character_count, get_session_mode
 
 app = Flask(__name__)
 PORT = int(os.environ.get('PORT', 8080))
@@ -34,18 +34,22 @@ def trainer():
         code = create_session()
     join_url = get_join_url(code)
     count = get_character_count(code)
-    return render_template('trainer.html', code=code, join_url=join_url, count=count)
+    mode = get_session_mode(code)
+    return render_template('trainer.html', code=code, join_url=join_url,
+                           count=count, mode=mode)
 
 @app.route('/new-session')
 def new_session():
-    create_session()
+    mode = request.args.get('mode', 'kickoff')
+    create_session(mode)
     return redirect(url_for('trainer'))
 
 @app.route('/join/<code>')
 def learner(code):
     if not session_exists(code):
         return "Session not found. Ask your trainer for the correct link.", 404
-    return render_template('learner.html', code=code)
+    mode = get_session_mode(code)
+    return render_template('learner.html', code=code, midcheck=(mode == 'midcheck'))
 
 @app.route('/save/<code>', methods=['POST'])
 def save(code):
@@ -71,7 +75,8 @@ def api_session(code):
 def stage(code):
     if not session_exists(code):
         return "Session not found.", 404
-    return render_template('stage.html', code=code)
+    mode = get_session_mode(code)
+    return render_template('stage.html', code=code, midcheck=(mode == 'midcheck'))
 
 @app.route('/qr/<code>')
 def qr_image(code):
